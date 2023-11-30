@@ -1,1 +1,4 @@
-mx\uv\Cliente.class
+mx/uv/DAO.class
+mx/uv/Usuario.class
+mx/uv/Conexion.class
+mx/uv/App.class

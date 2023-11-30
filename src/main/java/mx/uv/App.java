@@ -2,83 +2,75 @@ package mx.uv;
 
 import static spark.Spark.*;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import mx.uv.conexion.Cliente;
-import mx.uv.conexion.DAOCliente;
-import spark.Request;
-
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.UUID;
+import com.google.gson.*;
 
-public class App {
-
+/**
+ * Hello world!
+ *
+ */
+public class App 
+{
     static Gson gson = new Gson();
-    static DAOCliente daoCliente = new DAOCliente();
+    static HashMap<String, Usuario> usuarios = new HashMap<String, Usuario>();
+    
+    public static void main( String[] args )
+    {
+        
+        System.out.println( "Hello World!" );
 
-    public static void main(String[] args) {
+        //port(80);
+        port(getHerokuAssignedPort());
 
         options("/*", (request, response) -> {
+
             String accessControlRequestHeaders = request.headers("Access-Control-Request-Headers");
             if (accessControlRequestHeaders != null) {
                 response.header("Access-Control-Allow-Headers", accessControlRequestHeaders);
             }
+
             String accessControlRequestMethod = request.headers("Access-Control-Request-Method");
             if (accessControlRequestMethod != null) {
                 response.header("Access-Control-Allow-Methods", accessControlRequestMethod);
             }
+
             return "OK";
         });
         before((request, response) -> response.header("Access-Control-Allow-Origin", "*"));
 
-
-        put("/editar", (request, response) -> {
+        get("/usuarios", (request, response)->{
             response.type("application/json");
-            String res = request.body();
-            Cliente cliente = gson.fromJson(res, Cliente.class);
-            JsonObject respuesta = new JsonObject();
-            if (daoCliente.createUser(cliente)){
-                respuesta.addProperty("msj", "Se ha editado correctamente");
-            }else{
-                respuesta.addProperty("msj", "Hubo un error al editar");
-            }
-            return respuesta;
+            return gson.toJson(usuarios.values());
+            //return gson.toJson(DAO.dameUsuarios());
         });
 
-        delete("/eliminar", (request, response) -> {
+        post("/usuarios", (request, response)->{
             response.type("application/json");
-            String res = request.queryParams("id");
-            JsonObject respuesta = new JsonObject();
-            if (daoCliente.deleteUser(res)){
-                respuesta.addProperty("msj", "Se ha eliminado correctamente");
-            }else{
-                respuesta.addProperty("msj", "Hubo un error al eliminar");
-            }
-            return respuesta;
-        });
-
-        post("/agregar", (request, response) -> {
-            response.type("application/json");
-            String res = request.body();
-            Cliente cliente = gson.fromJson(res, Cliente.class);
+            String payload = request.body();
+            Usuario usuario = gson.fromJson(payload, Usuario.class);
+            System.out.println("payload "+payload);
             String id = UUID.randomUUID().toString();
-            cliente.setId(id);
-            System.out.println(cliente.getId());
-            JsonObject respuesta = new JsonObject();
-            if (daoCliente.createUser(cliente)){
-                respuesta.addProperty("msj", "Se ha agregado correctamente");
-            }else{
-                respuesta.addProperty("msj", "Hubo un error al agregar");
-            }
-            return respuesta;
-        });
+            usuario.setId(id);
+            usuarios.put(id, usuario);
+            // DAO.crearUsuario(usuario);
+            System.out.println("n "+usuario.getNombre());
+            System.out.println("p "+usuario.getPassword());
+            System.out.println("i "+usuario.getId());
 
-        get("/todos", ((request, response) -> {
-            response.type("application/json");
-            return gson.toJson(daoCliente.getClientes());
-        }));
+            JsonObject respuesta = new JsonObject();
+            respuesta.addProperty("msj", "Se creo el usuario");
+            respuesta.addProperty("id", id);
+            return gson.toJson(usuario);
+        });
 
     }
 
+    static int getHerokuAssignedPort() {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        if (processBuilder.environment().get("PORT") != null) {
+            return Integer.parseInt(processBuilder.environment().get("PORT"));
+        }
+        return 4567; //return default port if heroku-port isn't set (i.e. on localhost)
+    }
 }
